@@ -182,7 +182,13 @@ def main(_):
         train_state = train_state.replace(**replace_dict)
         if FLAGS.wandb.run_id != "None": # If we are continuing a run.
             start_step = train_state.step
-        train_state = jax.jit(lambda x : x, out_shardings=train_state_sharding)(train_state)
+            
+        import jax.sharding
+        if isinstance(train_state_sharding, jax.sharding.Sharding):
+            train_state = jax.tree_util.tree_map(lambda arr: jax.device_put(arr, train_state_sharding), train_state)
+        else:
+            train_state = jax.tree_util.tree_map(lambda arr, s: jax.device_put(arr, s), train_state, train_state_sharding)
+        
         print("Loaded model with step", train_state.step)
         train_state = train_state.replace(step=0)
         jax.debug.visualize_array_sharding(train_state.params['FinalLayer_0']['Dense_0']['kernel'])
