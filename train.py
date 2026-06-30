@@ -184,8 +184,9 @@ def main(_):
             start_step = train_state.step
             
         if FLAGS.mode == 'inference':
-            # In inference mode, only params_ema is used. Strip massive opt_state and params to save VRAM.
-            train_state = train_state.replace(opt_state={}, params={})
+            # In inference mode, only params_ema is used for generation. 
+            # Strip massive opt_state to save VRAM. Keep params intact to prevent KeyError if EMA is off.
+            train_state = train_state.replace(opt_state={})
             
         import jax.sharding as _jax_sharding
         if isinstance(train_state_sharding, _jax_sharding.Sharding):
