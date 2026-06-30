@@ -78,5 +78,10 @@ def get_dataset(dataset_name, batch_size, is_train, debug_overfit=False):
         dataset = tfds.as_numpy(dataset)
         dataset = iter(dataset)
         return dataset
+    elif dataset_name == 'dummy':
+        def dummy_generator():
+            while True:
+                yield np.zeros((batch_size, 256, 256, 3), dtype=np.float32), np.zeros((batch_size,), dtype=np.int32)
+        return dummy_generator()
     else:
         raise ValueError(f"Unknown dataset {dataset_name}")

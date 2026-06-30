@@ -12,6 +12,8 @@ from absl import app, flags
 flags.DEFINE_integer('inference_timesteps', 128, 'Number of timesteps for inference.')
 flags.DEFINE_integer('inference_generations', 4096, 'Number of generations for inference.')
 flags.DEFINE_float('inference_cfg_scale', 1.0, 'CFG scale for inference.')
+flags.DEFINE_integer('inference_class_label', -1, 'Specific class label for conditional generation (-1 for random).')
+flags.DEFINE_string('samples_dir', None, 'Directory to save generated raw png samples.')
 
 def do_inference(
     FLAGS,
@@ -93,7 +95,10 @@ def do_inference(
             key = jax.random.fold_in(key, jax.process_index())
             eps_key, label_key = jax.random.split(key)
             x = jax.random.normal(eps_key, images_shape)
-            labels = jax.random.randint(label_key, (images_shape[0],), 0, FLAGS.model.num_classes)
+            if FLAGS.inference_class_label >= 0:
+                labels = jnp.full((images_shape[0],), FLAGS.inference_class_label, dtype=jnp.int32)
+            else:
+                labels = jax.random.randint(label_key, (images_shape[0],), 0, FLAGS.model.num_classes)
             x, labels = shard_data(x, labels)
             x0.append(np.array(jax.experimental.multihost_utils.process_allgather(x)))
             delta_t = 1.0 / denoise_timesteps
@@ -127,7 +132,18 @@ def do_inference(
             lab.append(np.array(jax.experimental.multihost_utils.process_allgather(labels)))
             if FLAGS.model.use_stable_vae:
                 x = vae_decode(x) # Image is in [-1, 1] space.
-                if num_generations < 10000:
+                if FLAGS.samples_dir is not None:
+                    import cv2
+                    import os
+                    os.makedirs(FLAGS.samples_dir, exist_ok=True)
+                    x_img = ((np.array(jax.experimental.multihost_utils.process_allgather(x)) + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+                    if jax.process_index() == 0:
+                        global_batch_size = x_img.shape[0]
+                        start_idx = fid_it * global_batch_size
+                        for i, img in enumerate(x_img):
+                            img_bgr = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                            cv2.imwrite(os.path.join(FLAGS.samples_dir, f"{start_idx + i:06d}.png"), img_bgr)
+                elif num_generations < 10000:
                     x_render.append(np.array(jax.experimental.multihost_utils.process_allgather(x)))
             x = jax.image.resize(x, (x.shape[0], 299, 299, 3), method='bilinear', antialias=False)
             x = jnp.clip(x, -1, 1)
