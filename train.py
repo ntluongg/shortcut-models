@@ -121,6 +121,7 @@ def main(_):
     else:
         get_fid_activations = None
         truth_fid_stats = None
+        fid_from_stats = None
 
     ###################################
     # Creating Model and put on devices.
