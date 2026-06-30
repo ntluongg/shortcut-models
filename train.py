@@ -183,8 +183,12 @@ def main(_):
         if FLAGS.wandb.run_id != "None": # If we are continuing a run.
             start_step = train_state.step
             
-        import jax.sharding
-        if isinstance(train_state_sharding, jax.sharding.Sharding):
+        if FLAGS.mode == 'inference':
+            # In inference mode, only params_ema is used. Strip massive opt_state and params to save VRAM.
+            train_state = train_state.replace(opt_state={}, params={})
+            
+        import jax.sharding as _jax_sharding
+        if isinstance(train_state_sharding, _jax_sharding.Sharding):
             train_state = jax.tree_util.tree_map(lambda arr: jax.device_put(arr, train_state_sharding), train_state)
         else:
             train_state = jax.tree_util.tree_map(lambda arr, s: jax.device_put(arr, s), train_state, train_state_sharding)
