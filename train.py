@@ -195,7 +195,6 @@ def main(_):
         
         print("Loaded model with step", train_state.step)
         train_state = train_state.replace(step=0)
-        jax.debug.visualize_array_sharding(train_state.params['FinalLayer_0']['Dense_0']['kernel'])
         del cp
 
     if FLAGS.model.train_type == 'progressive' or FLAGS.model.train_type == 'consistency-distillation':

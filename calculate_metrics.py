@@ -2,6 +2,7 @@ import os
 import argparse
 import numpy as np
 import jax
+jax.config.update('jax_platform_name', 'cpu')
 import jax.numpy as jnp
 from tqdm import tqdm
 import cv2
