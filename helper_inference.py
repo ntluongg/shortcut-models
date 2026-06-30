@@ -145,14 +145,15 @@ def do_inference(
                             cv2.imwrite(os.path.join(FLAGS.samples_dir, f"{start_idx + i:06d}.png"), img_bgr)
                 elif num_generations < 10000:
                     x_render.append(np.array(jax.experimental.multihost_utils.process_allgather(x)))
-            x = jax.image.resize(x, (x.shape[0], 299, 299, 3), method='bilinear', antialias=False)
-            x = jnp.clip(x, -1, 1)
-            acts = get_fid_activations(x)[..., 0, 0, :] # [devices, batch//devices, 2048]
-            acts = jax.experimental.multihost_utils.process_allgather(acts)
-            acts = np.array(acts)
-            activations.append(acts)
+            if get_fid_activations is not None:
+                x_resized = jax.image.resize(x, (x.shape[0], 299, 299, 3), method='bilinear', antialias=False)
+                x_resized = jnp.clip(x_resized, -1, 1)
+                acts = get_fid_activations(x_resized)[..., 0, 0, :] # [devices, batch//devices, 2048]
+                acts = jax.experimental.multihost_utils.process_allgather(acts)
+                acts = np.array(acts)
+                activations.append(acts)
         
-        if jax.process_index() == 0:
+        if jax.process_index() == 0 and get_fid_activations is not None:
             activations = np.concatenate(activations, axis=0)
             activations = activations.reshape((-1, activations.shape[-1]))
             mu1 = np.mean(activations, axis=0)
