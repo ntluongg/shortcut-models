@@ -7,6 +7,7 @@ import tqdm
 import matplotlib.pyplot as plt
 import os
 from functools import partial
+import contextlib
 from absl import app, flags
 
 flags.DEFINE_integer('inference_timesteps', 128, 'Number of timesteps for inference.')
@@ -31,7 +32,7 @@ def do_inference(
     fid_from_stats,
     truth_fid_stats,
 ):
-    with jax.spmd_mode('allow_all'):
+    with contextlib.nullcontext():
         global_device_count = jax.device_count()
         key = jax.random.PRNGKey(42 + jax.process_index())
         batch_images, batch_labels = next(dataset)

@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import numpy as np
 import tqdm
 import matplotlib.pyplot as plt
+import contextlib
 from functools import partial
 
 def eval_model(
@@ -24,7 +25,7 @@ def eval_model(
     fid_from_stats,
     truth_fid_stats,
 ):
-    with jax.spmd_mode('allow_all'):
+    with contextlib.nullcontext():
         global_device_count = jax.device_count()
         key = jax.random.PRNGKey(42 + jax.process_index())
         batch_images, batch_labels = next(dataset)
