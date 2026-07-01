@@ -171,9 +171,13 @@ def main(_):
     train_state = jax.jit(init, out_shardings=train_state_sharding)(rng)
     if FLAGS.model.train_type == 'livereflow':
         train_state = train_state.replace(params_ema=train_state.params)
-    jax.debug.visualize_array_sharding(train_state.params['FinalLayer_0']['Dense_0']['kernel'])
-    jax.debug.visualize_array_sharding(train_state.params['TimestepEmbedder_1']['Dense_0']['kernel'])
-    jax.experimental.multihost_utils.assert_equal(train_state.params['TimestepEmbedder_1']['Dense_0']['kernel'])
+    try:
+        params_to_viz = train_state.params if train_state.params else train_state.params_ema
+        jax.debug.visualize_array_sharding(params_to_viz['FinalLayer_0']['Dense_0']['kernel'])
+        jax.debug.visualize_array_sharding(params_to_viz['TimestepEmbedder_1']['Dense_0']['kernel'])
+        jax.experimental.multihost_utils.assert_equal(params_to_viz['TimestepEmbedder_1']['Dense_0']['kernel'])
+    except KeyError:
+        pass
     start_step = 1
 
     if FLAGS.load_dir is not None:
