@@ -110,7 +110,7 @@ def do_inference(
                     dt_flow = np.log2(FLAGS.model['denoise_timesteps']).astype(jnp.int32)
                     dt_base = jnp.ones(images_shape[0], dtype=jnp.int32) * dt_flow # Smallest dt.
                 else: # shortcut
-                    dt_flow = np.log2(denoise_timesteps).astype(jnp.int32)
+                    dt_flow = np.log2(FLAGS.model['denoise_timesteps'] // denoise_timesteps).astype(jnp.int32)
                     dt_base = jnp.ones(images_shape[0], dtype=jnp.int32) * dt_flow
                     # print(dt_base)
                 t_vector, dt_base = shard_data(t_vector, dt_base)
